@@ -7,6 +7,7 @@ import (
 	"image/color"
 	"log"
 	"math/rand/v2"
+	"time"
 
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/ebitenutil"
@@ -18,16 +19,17 @@ type Size struct {
 }
 
 type EnemyCoords struct {
-	enemyId int
-	enemyX  float64
-	enemyY  float64
+	enemySpawnTime time.Time
+	enemyX         float64
+	enemyY         float64
 }
 
 var windowSize = Size{800, 600}
 
 //go:embed MomoTrustDisplay-Regular.ttf
 var fontData []byte
-var face text.Face
+var scoreFace text.Face
+var winFace text.Face
 var score int = 0
 
 var characterWidth float64
@@ -46,9 +48,14 @@ func init() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	face = &text.GoTextFace{
+	scoreFace = &text.GoTextFace{
 		Source: src,
 		Size:   24,
+	}
+
+	winFace = &text.GoTextFace{
+		Source: src,
+		Size:   36,
 	}
 
 	player, _, err = ebitenutil.NewImageFromFile("assets/player.png")
@@ -73,15 +80,18 @@ func init() {
 	playerX = screenWidth/2 - (assetWidth*characterWidth)/2
 	playerY = screenHeight/2 - (assetHeight*characterHeight)/2
 
+	rX, rY := randomCoords()
 	enemyList = append(enemyList, EnemyCoords{
-		enemyId: len(enemyList),
-		enemyX:  randomFloat(100, 700),
-		enemyY:  randomFloat(100, 500),
+		enemySpawnTime: time.Now(),
+		enemyX:         rX,
+		enemyY:         rY,
 	})
 }
 
-func randomFloat(min, max float64) float64 {
-	return min + rand.Float64()*(max-min)
+func randomCoords() (float64, float64) {
+	x := 100 + rand.Float64()*(700-100)
+	y := 100 + rand.Float64()*(500-100)
+	return x, y
 }
 
 type Game struct{}
@@ -107,12 +117,24 @@ func (g *Game) Update() error {
 			playerX += playerSpeed
 		}
 	}
-
+	for i := 0; i < len(enemyList); i++ {
+		now := time.Now()
+		if now.Sub(enemyList[i].enemySpawnTime) >= 2*time.Second {
+			enemyList = append(enemyList[:i], enemyList[i+1:]...)
+			i--
+		}
+	}
 	for i := 0; i < len(enemyList); i++ {
 		if isColliding(playerX, playerY, enemyList[i].enemyX, enemyList[i].enemyY) {
 			enemyList = append(enemyList[:i], enemyList[i+1:]...)
 			i--
 			score++
+
+			if score%3 == 0 {
+				generateEnemy(2)
+			} else {
+				generateEnemy(1)
+			}
 		}
 	}
 
@@ -137,19 +159,46 @@ func (g *Game) Draw(screen *ebiten.Image) {
 
 	screen.DrawImage(player, playerImageOptions)
 
-	if score < 10 {
-		enemyImageOptions := &ebiten.DrawImageOptions{}
-		enemyImageOptions.GeoM.Scale(characterWidth, characterHeight)
-
+	if score < 20 {
 		for i := 0; i < len(enemyList); i++ {
+			enemyImageOptions := &ebiten.DrawImageOptions{}
+			enemyImageOptions.GeoM.Scale(characterWidth, characterHeight)
 			enemyImageOptions.GeoM.Translate(enemyList[i].enemyX, enemyList[i].enemyY)
 			screen.DrawImage(enemy, enemyImageOptions)
 		}
+	} else {
+		winTextOptions := &text.DrawOptions{}
+		winTextOptions.GeoM.Translate(250, 200)
+		winTextOptions.ColorScale.Scale(0, 1, 0, 1)
+		text.Draw(screen, "You have won!", winFace, winTextOptions)
 	}
 
-	textOptions := &text.DrawOptions{}
-	textOptions.GeoM.Translate(7, 7)
-	text.Draw(screen, fmt.Sprintf("Score: %d", score), face, textOptions)
+	scoreTextOptions := &text.DrawOptions{}
+	scoreTextOptions.GeoM.Translate(7, 7)
+	text.Draw(screen, fmt.Sprintf("Score: %d/20", score), scoreFace, scoreTextOptions)
+}
+
+func generateEnemy(count int) {
+	for i := 0; i < count; i++ {
+		rX, rY := randomCoords()
+		for checkEnemyOverlap(rX, rY) {
+			rX, rY = randomCoords()
+		}
+		enemyList = append(enemyList, EnemyCoords{
+			enemySpawnTime: time.Now(),
+			enemyX:         rX,
+			enemyY:         rY,
+		})
+	}
+}
+
+func checkEnemyOverlap(rX, rY float64) bool {
+	for i := 0; i < len(enemyList); i++ {
+		if isColliding(enemyList[i].enemyX, enemyList[i].enemyY, rX, rY) {
+			return true
+		}
+	}
+	return false
 }
 
 func (g *Game) Layout(outsideWidth, outsideHeight int) (int, int) {
