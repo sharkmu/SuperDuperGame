@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"image/color"
 	"log"
+	"math/rand/v2"
 	"os"
 
 	"github.com/hajimehoshi/ebiten/v2"
@@ -21,13 +22,23 @@ var windowSize = Size{800, 600}
 
 var face font.Face
 var score int = 0
+
 var player *ebiten.Image
 var playerSpeed float64 = 6.0
 var playerX, playerY float64
 
+var enemy *ebiten.Image
+var enemyX, enemyY float64
+var enemyAlive bool = true
+
 func init() {
 	var err error
 	player, _, err = ebitenutil.NewImageFromFile("assets/player.png")
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	enemy, _, err = ebitenutil.NewImageFromFile("assets/enemy.png")
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -43,6 +54,13 @@ func init() {
 
 	playerX = screenWidth/2 - (playerWidth*scalePlayerX)/2
 	playerY = screenHeight/2 - (playerHeight*scalePlayerY)/2
+
+	enemyX = randomFloat(100, 700)
+	enemyY = randomFloat(100, 500)
+}
+
+func randomFloat(min, max float64) float64 {
+	return min + rand.Float64()*(max-min)
 }
 
 type Game struct{}
@@ -69,7 +87,21 @@ func (g *Game) Update() error {
 		}
 	}
 
+	if enemyAlive {
+		if isColliding(playerX, playerY, enemyX, enemyY) {
+			enemyAlive = false
+			score++
+		}
+	}
+
 	return nil
+}
+
+func isColliding(pX, pY, eX, eY float64) bool {
+	return pX < eX+50 &&
+		pX+50 > eX &&
+		pY < eY+50 &&
+		pY+50 > eY
 }
 
 func (g *Game) Draw(screen *ebiten.Image) {
@@ -87,6 +119,13 @@ func (g *Game) Draw(screen *ebiten.Image) {
 	playerImageOptions.GeoM.Translate(playerX, playerY)
 
 	screen.DrawImage(player, playerImageOptions)
+
+	enemyImageOptions := &ebiten.DrawImageOptions{}
+	enemyImageOptions.GeoM.Scale(scalePlayerX, scalePlayerY)
+	enemyImageOptions.GeoM.Translate(enemyX, enemyY)
+	if score < 10 && enemyAlive {
+		screen.DrawImage(enemy, enemyImageOptions)
+	}
 
 	text.Draw(screen, fmt.Sprintf("Score: %d", score), face, 10, 30, color.White)
 }
