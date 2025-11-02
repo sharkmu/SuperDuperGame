@@ -1,17 +1,16 @@
 package main
 
 import (
+	"bytes"
+	_ "embed"
 	"fmt"
 	"image/color"
 	"log"
 	"math/rand/v2"
-	"os"
 
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/ebitenutil"
-	"github.com/hajimehoshi/ebiten/v2/text"
-	"golang.org/x/image/font"
-	"golang.org/x/image/font/opentype"
+	"github.com/hajimehoshi/ebiten/v2/text/v2"
 )
 
 type Size struct {
@@ -26,7 +25,9 @@ type EnemyCoords struct {
 
 var windowSize = Size{800, 600}
 
-var face font.Face
+//go:embed MomoTrustDisplay-Regular.ttf
+var fontData []byte
+var face text.Face
 var score int = 0
 
 var characterWidth float64
@@ -40,7 +41,16 @@ var enemy *ebiten.Image
 var enemyList []EnemyCoords
 
 func init() {
-	var err error
+	reader := bytes.NewReader(fontData)
+	src, err := text.NewGoTextFaceSource(reader)
+	if err != nil {
+		log.Fatal(err)
+	}
+	face = &text.GoTextFace{
+		Source: src,
+		Size:   24,
+	}
+
 	player, _, err = ebitenutil.NewImageFromFile("assets/player.png")
 	if err != nil {
 		log.Fatal(err)
@@ -137,7 +147,9 @@ func (g *Game) Draw(screen *ebiten.Image) {
 		}
 	}
 
-	text.Draw(screen, fmt.Sprintf("Score: %d", score), face, 10, 30, color.White)
+	textOptions := &text.DrawOptions{}
+	textOptions.GeoM.Translate(7, 7)
+	text.Draw(screen, fmt.Sprintf("Score: %d", score), face, textOptions)
 }
 
 func (g *Game) Layout(outsideWidth, outsideHeight int) (int, int) {
@@ -145,32 +157,9 @@ func (g *Game) Layout(outsideWidth, outsideHeight int) (int, int) {
 }
 
 func main() {
-	setFont("MomoTrustDisplay-Regular.ttf")
-
 	ebiten.SetWindowSize(windowSize.width, windowSize.height)
 	ebiten.SetWindowTitle("Super Duper Game made by: sam")
 	if err := ebiten.RunGame(&Game{}); err != nil {
-		log.Fatal(err)
-	}
-}
-
-func setFont(fontFileName string) {
-	fontBytes, err := os.ReadFile(fontFileName)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	ttf, err := opentype.Parse(fontBytes)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	face, err = opentype.NewFace(ttf, &opentype.FaceOptions{
-		Size:    24,
-		DPI:     72,
-		Hinting: font.HintingFull,
-	})
-	if err != nil {
 		log.Fatal(err)
 	}
 }
