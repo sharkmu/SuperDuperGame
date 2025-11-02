@@ -22,7 +22,8 @@ var windowSize = Size{800, 600}
 var face font.Face
 var score int = 0
 var player *ebiten.Image
-var playerX, PlayerY float64
+var playerSpeed float64 = 6.0
+var playerX, playerY float64
 
 func init() {
 	var err error
@@ -41,19 +42,39 @@ func init() {
 	screenHeight := float64(windowSize.height)
 
 	playerX = screenWidth/2 - (playerWidth*scalePlayerX)/2
-	PlayerY = screenHeight/2 - (playerHeight*scalePlayerY)/2
+	playerY = screenHeight/2 - (playerHeight*scalePlayerY)/2
 }
 
 type Game struct{}
 
 func (g *Game) Update() error {
-	score++
+	fmt.Println(playerX)
+	if ebiten.IsKeyPressed(ebiten.KeyW) || ebiten.IsKeyPressed(ebiten.KeyArrowUp) {
+		if playerY > 0 {
+			playerY -= playerSpeed
+		}
+	}
+	if ebiten.IsKeyPressed(ebiten.KeyS) || ebiten.IsKeyPressed(ebiten.KeyArrowDown) {
+		if playerY < 550 {
+			playerY += playerSpeed
+		}
+	}
+	if ebiten.IsKeyPressed(ebiten.KeyA) || ebiten.IsKeyPressed(ebiten.KeyArrowLeft) {
+		if playerX > 0 {
+			playerX -= playerSpeed
+		}
+	}
+	if ebiten.IsKeyPressed(ebiten.KeyD) || ebiten.IsKeyPressed(ebiten.KeyArrowRight) {
+		if playerX < 750 {
+			playerX += playerSpeed
+		}
+	}
+
 	return nil
 }
 
 func (g *Game) Draw(screen *ebiten.Image) {
 	screen.Fill(color.RGBA{80, 160, 240, 0})
-	text.Draw(screen, fmt.Sprintf("Score: %d", score), face, 10, 30, color.Black)
 
 	playerImageOptions := &ebiten.DrawImageOptions{}
 
@@ -64,9 +85,11 @@ func (g *Game) Draw(screen *ebiten.Image) {
 	scalePlayerY := 50.0 / playerHeight
 	playerImageOptions.GeoM.Scale(scalePlayerX, scalePlayerY)
 
-	playerImageOptions.GeoM.Translate(playerX, PlayerY)
+	playerImageOptions.GeoM.Translate(playerX, playerY)
 
 	screen.DrawImage(player, playerImageOptions)
+
+	text.Draw(screen, fmt.Sprintf("Score: %d", score), face, 10, 30, color.White)
 }
 
 func (g *Game) Layout(outsideWidth, outsideHeight int) (int, int) {
