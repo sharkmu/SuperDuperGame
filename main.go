@@ -48,7 +48,6 @@ func init() {
 type Game struct{}
 
 func (g *Game) Update() error {
-	fmt.Println(playerX)
 	if ebiten.IsKeyPressed(ebiten.KeyW) || ebiten.IsKeyPressed(ebiten.KeyArrowUp) {
 		if playerY > 0 {
 			playerY -= playerSpeed
