@@ -31,6 +31,7 @@ var fontData []byte
 var scoreFace text.Face
 var bigFace text.Face
 var score int = 0
+var canRestart bool = false
 
 var characterWidth float64
 var characterHeight float64
@@ -41,6 +42,17 @@ var playerX, playerY float64
 
 var enemy *ebiten.Image
 var enemyList []EnemyCoords
+
+func initGame() {
+	enemyList = []EnemyCoords{}
+
+	rX, rY := randomCoords()
+	enemyList = append(enemyList, EnemyCoords{
+		enemySpawnTime: time.Now(),
+		enemyX:         rX,
+		enemyY:         rY,
+	})
+}
 
 func init() {
 	reader := bytes.NewReader(fontData)
@@ -80,12 +92,7 @@ func init() {
 	playerX = screenWidth/2 - (assetWidth*characterWidth)/2
 	playerY = screenHeight/2 - (assetHeight*characterHeight)/2
 
-	rX, rY := randomCoords()
-	enemyList = append(enemyList, EnemyCoords{
-		enemySpawnTime: time.Now(),
-		enemyX:         rX,
-		enemyY:         rY,
-	})
+	initGame()
 }
 
 func randomCoords() (float64, float64) {
@@ -117,6 +124,12 @@ func (g *Game) Update() error {
 			playerX += playerSpeed
 		}
 	}
+
+	if ebiten.IsKeyPressed(ebiten.KeySpace) && canRestart {
+		canRestart = false
+		initGame()
+	}
+
 	for i := 0; i < len(enemyList); i++ {
 		now := time.Now()
 		if now.Sub(enemyList[i].enemySpawnTime) >= 2*time.Second {
@@ -162,9 +175,15 @@ func (g *Game) Draw(screen *ebiten.Image) {
 	if score < 20 {
 		if len(enemyList) < 1 {
 			lostTextOptions := &text.DrawOptions{}
-			lostTextOptions.GeoM.Translate(250, 200)
+			lostTextOptions.GeoM.Translate(250, 100)
 			lostTextOptions.ColorScale.Scale(1, 0, 0, 1)
 			text.Draw(screen, "You have lost!", bigFace, lostTextOptions)
+
+			restartTextOptions := &text.DrawOptions{}
+			restartTextOptions.GeoM.Translate(190, 200)
+			text.Draw(screen, "Press SPACE to restart the game.", scoreFace, restartTextOptions)
+			canRestart = true
+
 		} else {
 			for i := 0; i < len(enemyList); i++ {
 				enemyImageOptions := &ebiten.DrawImageOptions{}
@@ -175,7 +194,7 @@ func (g *Game) Draw(screen *ebiten.Image) {
 		}
 	} else {
 		winTextOptions := &text.DrawOptions{}
-		winTextOptions.GeoM.Translate(250, 200)
+		winTextOptions.GeoM.Translate(250, 100)
 		winTextOptions.ColorScale.Scale(0, 1, 0, 1)
 		text.Draw(screen, "You have won!", bigFace, winTextOptions)
 	}
