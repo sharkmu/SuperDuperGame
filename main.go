@@ -18,18 +18,26 @@ type Size struct {
 	width, height int
 }
 
+type EnemyCoords struct {
+	enemyId int
+	enemyX  float64
+	enemyY  float64
+}
+
 var windowSize = Size{800, 600}
 
 var face font.Face
 var score int = 0
+
+var characterWidth float64
+var characterHeight float64
 
 var player *ebiten.Image
 var playerSpeed float64 = 6.0
 var playerX, playerY float64
 
 var enemy *ebiten.Image
-var enemyX, enemyY float64
-var enemyAlive bool = true
+var enemyList []EnemyCoords
 
 func init() {
 	var err error
@@ -43,20 +51,23 @@ func init() {
 		log.Fatal(err)
 	}
 
-	playerWidth := float64(player.Bounds().Dx())
-	playerHeight := float64(player.Bounds().Dy())
+	assetWidth := float64(player.Bounds().Dx())
+	assetHeight := float64(player.Bounds().Dy())
 
-	scalePlayerX := 50.0 / playerWidth
-	scalePlayerY := 50.0 / playerHeight
+	characterWidth = 50.0 / assetWidth
+	characterHeight = 50.0 / assetHeight
 
 	screenWidth := float64(windowSize.width)
 	screenHeight := float64(windowSize.height)
 
-	playerX = screenWidth/2 - (playerWidth*scalePlayerX)/2
-	playerY = screenHeight/2 - (playerHeight*scalePlayerY)/2
+	playerX = screenWidth/2 - (assetWidth*characterWidth)/2
+	playerY = screenHeight/2 - (assetHeight*characterHeight)/2
 
-	enemyX = randomFloat(100, 700)
-	enemyY = randomFloat(100, 500)
+	enemyList = append(enemyList, EnemyCoords{
+		enemyId: len(enemyList),
+		enemyX:  randomFloat(100, 700),
+		enemyY:  randomFloat(100, 500),
+	})
 }
 
 func randomFloat(min, max float64) float64 {
@@ -87,9 +98,10 @@ func (g *Game) Update() error {
 		}
 	}
 
-	if enemyAlive {
-		if isColliding(playerX, playerY, enemyX, enemyY) {
-			enemyAlive = false
+	for i := 0; i < len(enemyList); i++ {
+		if isColliding(playerX, playerY, enemyList[i].enemyX, enemyList[i].enemyY) {
+			enemyList = append(enemyList[:i], enemyList[i+1:]...)
+			i--
 			score++
 		}
 	}
@@ -109,22 +121,20 @@ func (g *Game) Draw(screen *ebiten.Image) {
 
 	playerImageOptions := &ebiten.DrawImageOptions{}
 
-	playerWidth := float64(player.Bounds().Dx())
-	playerHeight := float64(player.Bounds().Dy())
-
-	scalePlayerX := 50.0 / playerWidth
-	scalePlayerY := 50.0 / playerHeight
-	playerImageOptions.GeoM.Scale(scalePlayerX, scalePlayerY)
+	playerImageOptions.GeoM.Scale(characterWidth, characterHeight)
 
 	playerImageOptions.GeoM.Translate(playerX, playerY)
 
 	screen.DrawImage(player, playerImageOptions)
 
-	enemyImageOptions := &ebiten.DrawImageOptions{}
-	enemyImageOptions.GeoM.Scale(scalePlayerX, scalePlayerY)
-	enemyImageOptions.GeoM.Translate(enemyX, enemyY)
-	if score < 10 && enemyAlive {
-		screen.DrawImage(enemy, enemyImageOptions)
+	if score < 10 {
+		enemyImageOptions := &ebiten.DrawImageOptions{}
+		enemyImageOptions.GeoM.Scale(characterWidth, characterHeight)
+
+		for i := 0; i < len(enemyList); i++ {
+			enemyImageOptions.GeoM.Translate(enemyList[i].enemyX, enemyList[i].enemyY)
+			screen.DrawImage(enemy, enemyImageOptions)
+		}
 	}
 
 	text.Draw(screen, fmt.Sprintf("Score: %d", score), face, 10, 30, color.White)
