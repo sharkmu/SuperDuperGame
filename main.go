@@ -44,6 +44,7 @@ var enemy *ebiten.Image
 var enemyList []EnemyCoords
 
 func initGame() {
+	score = 0
 	enemyList = []EnemyCoords{}
 
 	rX, rY := randomCoords()
@@ -178,12 +179,7 @@ func (g *Game) Draw(screen *ebiten.Image) {
 			lostTextOptions.GeoM.Translate(250, 100)
 			lostTextOptions.ColorScale.Scale(1, 0, 0, 1)
 			text.Draw(screen, "You have lost!", bigFace, lostTextOptions)
-
-			restartTextOptions := &text.DrawOptions{}
-			restartTextOptions.GeoM.Translate(190, 200)
-			text.Draw(screen, "Press SPACE to restart the game.", scoreFace, restartTextOptions)
-			canRestart = true
-
+			showRestartOption(screen)
 		} else {
 			for i := 0; i < len(enemyList); i++ {
 				enemyImageOptions := &ebiten.DrawImageOptions{}
@@ -197,11 +193,19 @@ func (g *Game) Draw(screen *ebiten.Image) {
 		winTextOptions.GeoM.Translate(250, 100)
 		winTextOptions.ColorScale.Scale(0, 1, 0, 1)
 		text.Draw(screen, "You have won!", bigFace, winTextOptions)
+		showRestartOption(screen)
 	}
 
 	scoreTextOptions := &text.DrawOptions{}
 	scoreTextOptions.GeoM.Translate(7, 7)
 	text.Draw(screen, fmt.Sprintf("Score: %d/20", score), scoreFace, scoreTextOptions)
+}
+
+func showRestartOption(screen *ebiten.Image) {
+	restartTextOptions := &text.DrawOptions{}
+	restartTextOptions.GeoM.Translate(215, 200)
+	text.Draw(screen, "Press SPACE to play again.", scoreFace, restartTextOptions)
+	canRestart = true
 }
 
 func generateEnemy(count int) {
