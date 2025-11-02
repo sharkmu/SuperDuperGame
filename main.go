@@ -29,7 +29,7 @@ var windowSize = Size{800, 600}
 //go:embed MomoTrustDisplay-Regular.ttf
 var fontData []byte
 var scoreFace text.Face
-var winFace text.Face
+var bigFace text.Face
 var score int = 0
 
 var characterWidth float64
@@ -53,7 +53,7 @@ func init() {
 		Size:   24,
 	}
 
-	winFace = &text.GoTextFace{
+	bigFace = &text.GoTextFace{
 		Source: src,
 		Size:   36,
 	}
@@ -160,17 +160,24 @@ func (g *Game) Draw(screen *ebiten.Image) {
 	screen.DrawImage(player, playerImageOptions)
 
 	if score < 20 {
-		for i := 0; i < len(enemyList); i++ {
-			enemyImageOptions := &ebiten.DrawImageOptions{}
-			enemyImageOptions.GeoM.Scale(characterWidth, characterHeight)
-			enemyImageOptions.GeoM.Translate(enemyList[i].enemyX, enemyList[i].enemyY)
-			screen.DrawImage(enemy, enemyImageOptions)
+		if len(enemyList) < 1 {
+			lostTextOptions := &text.DrawOptions{}
+			lostTextOptions.GeoM.Translate(250, 200)
+			lostTextOptions.ColorScale.Scale(1, 0, 0, 1)
+			text.Draw(screen, "You have lost!", bigFace, lostTextOptions)
+		} else {
+			for i := 0; i < len(enemyList); i++ {
+				enemyImageOptions := &ebiten.DrawImageOptions{}
+				enemyImageOptions.GeoM.Scale(characterWidth, characterHeight)
+				enemyImageOptions.GeoM.Translate(enemyList[i].enemyX, enemyList[i].enemyY)
+				screen.DrawImage(enemy, enemyImageOptions)
+			}
 		}
 	} else {
 		winTextOptions := &text.DrawOptions{}
 		winTextOptions.GeoM.Translate(250, 200)
 		winTextOptions.ColorScale.Scale(0, 1, 0, 1)
-		text.Draw(screen, "You have won!", winFace, winTextOptions)
+		text.Draw(screen, "You have won!", bigFace, winTextOptions)
 	}
 
 	scoreTextOptions := &text.DrawOptions{}
