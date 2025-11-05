@@ -26,7 +26,7 @@ type EnemyCoords struct {
 
 var windowSize = Size{800, 600}
 
-//go:embed MomoTrustDisplay-Regular.ttf
+//go:embed assets/MomoTrustDisplay-Regular.ttf
 var fontData []byte
 var scoreFace text.Face
 var bigFace text.Face
